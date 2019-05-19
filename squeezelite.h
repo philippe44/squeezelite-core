@@ -706,6 +706,7 @@ void _pa_open(void);
 
 // output_dac.c
 #if DACAUDIO
+void set_volume(unsigned left, unsigned right);
 void output_init_dac(log_level level, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle);
 void output_close_dac(void);
 #endif
