@@ -27,7 +27,13 @@ static int _dac_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32
 								s32_t cross_gain_in, s32_t cross_gain_out, s32_t **cross_ptr);
 static void *output_thread();
 
-void set_volume(unsigned left, unsigned right) {}
+void set_volume(unsigned left, unsigned right) {
+	LOG_DEBUG("setting internal gain left: %u right: %u", left, right);
+	LOCK;
+	output.gainL = left;
+	output.gainR = right;
+	UNLOCK;
+}
 
 void output_init_dac(log_level level, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle) {
 	loglevel = level;
