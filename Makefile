@@ -1,5 +1,5 @@
 # Cross compile support - create a Makefile which defines these three variables and then includes this Makefile...
-CFLAGS  ?= -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DDACAUDIO -DTREMOR_ONLY -fstack-usage
+CFLAGS  ?= -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DDACAUDIO -DTREMOR_ONLY -DBYTES_PER_FRAME=4 -fstack-usage
 LDADD   ?= -lpthread -lm -lrt -lstdc++
 EXECUTABLE ?= squeezelite-core
 
