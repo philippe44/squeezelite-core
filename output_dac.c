@@ -11,7 +11,7 @@ extern struct outputstate output;
 extern struct buffer *outputbuf;
 
 #if REPACK && BYTES_PER_FRAMES == 4
-#error can't have REPACK with 4 bytes per frame
+#error "REPACK is not compatible with BYTES_PER_FRAME=4"
 #endif
 
 #define LOCK   mutex_lock(outputbuf->mutex)
