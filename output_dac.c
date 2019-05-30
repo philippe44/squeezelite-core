@@ -187,7 +187,7 @@ static void *output_thread() {
 		if (frames) {
 			if (output.device[0] == '-' && memcmp(optr, silencebuf, frames * bytes_per_frame)) {
 				fwrite(obuf, bytes_per_frame, frames, stdout);
-				LOG_INFO("writing frames %d", frames);
+				LOG_SDEBUG("writing frames %d", frames);
 			} else {	
 				// do something with some of these frames...
 				usleep((frames * 1000 * 1000) / output.current_sample_rate);			
