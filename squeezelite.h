@@ -71,9 +71,8 @@
 #define PA18API   1
 #define OSX       0
 #define WIN       0
-#elif defined (POSIX)
-#undef POSIX
-#define POSIX 	  1
+#elif defined (EMBEDDED)
+#include "embedded.h"
 #else
 #error unknown target
 #endif
@@ -300,8 +299,6 @@ typedef uint8_t  u8_t;
 typedef uint16_t u16_t;
 typedef uint32_t u32_t;
 typedef uint64_t u64_t;
-#elif POSIX
-typedef unsigned long long u64_t;
 #else
 typedef u_int8_t  u8_t;
 typedef u_int16_t u16_t;
