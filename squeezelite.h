@@ -120,6 +120,10 @@
 #undef  RESAMPLE
 #define RESAMPLE  1 // resampling
 #define PROCESS   1 // any sample processing (only resampling at present)
+#elif defined(RESAMPLE16)
+#undef RESAMPLE16
+#define RESAMPLE16	1
+#define PROCESS		1
 #else
 #define RESAMPLE  0
 #define PROCESS   0
@@ -603,7 +607,7 @@ unsigned process_newstream(bool *direct, unsigned raw_sample_rate, unsigned supp
 void process_init(char *opt);
 #endif
 
-#if RESAMPLE
+#if RESAMPLE || RESAMPLE16
 // resample.c
 void resample_samples(struct processstate *process);
 bool resample_drain(struct processstate *process);
