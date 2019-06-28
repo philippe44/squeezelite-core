@@ -12,7 +12,7 @@ INCLUDE = -I. \
 	-I$(BASE)/tremor -I$(BASE)/libogg/include \
 	-I$(BASE)/soxr/src \
 	-I$(BASE)/alac \
-	-I$(BASE)/libresample16/src
+	-I$(BASE)/libresample16
 #	-I$(BASE)/faad2/include 	
 
 SOURCES = \
