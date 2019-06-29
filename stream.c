@@ -406,7 +406,7 @@ void stream_init(log_level level, unsigned stream_buf_size) {
 	touch_memory(streambuf->buf, streambuf->size);
 #endif
 
-#if LINUX || OSX || FREEBSD || POSIX
+#if LINUX || OSX || FREEBSD || EMBEDDED
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 #ifdef PTHREAD_STACK_MIN	
@@ -414,6 +414,9 @@ void stream_init(log_level level, unsigned stream_buf_size) {
 #endif
 	pthread_create(&thread, &attr, stream_thread, NULL);
 	pthread_attr_destroy(&attr);
+#if HAS_PTHREAD_SETNAME_NP	
+	pthread_setname_np(thread, "stream");
+#endif
 #endif
 #if WIN
 	thread = CreateThread(NULL, STREAM_THREAD_STACK_SIZE, (LPTHREAD_START_ROUTINE)&stream_thread, NULL, 0, NULL);

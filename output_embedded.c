@@ -1,7 +1,24 @@
-
+/* 
+ *  Squeezelite - lightweight headless squeezebox emulator
+ *
+ *  (c) Adrian Smith 2012-2015, triode1@btinternet.com
+ *      Ralph Irving 2015-2017, ralph_irving@hotmail.com
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 #include "squeezelite.h"
-
-#include <signal.h>
 
 static log_level loglevel;
 
@@ -25,7 +42,7 @@ static u8_t *optr;
 static int bytes_per_frame;
 static thread_type thread;
 
-static int _dac_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
+static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
 								s32_t cross_gain_in, s32_t cross_gain_out, ISAMPLE_T **cross_ptr);
 static void *output_thread();
 
@@ -37,10 +54,10 @@ void set_volume(unsigned left, unsigned right) {
 	UNLOCK;
 }
 
-void output_init_dac(log_level level, char *device, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle) {
+void output_init_embedded(log_level level, char *device, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle) {
 	loglevel = level;
 
-	LOG_INFO("init output DAC");
+	LOG_INFO("init output EMBEDDED");
 	
 	memset(&output, 0, sizeof(output));
 
@@ -50,7 +67,7 @@ void output_init_dac(log_level level, char *device, unsigned output_buf_size, ch
 	output.format = S32_LE;
 #endif	
 	output.start_frames = FRAME_BLOCK * 2;
-	output.write_cb = &_dac_write_frames;
+	output.write_cb = &_embedded_write_frames;
 	output.rate_delay = rate_delay;
 
 	if (params) {
@@ -66,7 +83,7 @@ void output_init_dac(log_level level, char *device, unsigned output_buf_size, ch
 
 	output_init_common(level, device, output_buf_size, rates, idle);
 
-#if LINUX || OSX || FREEBSD || POSIX
+#if LINUX || OSX || FREEBSD || EMBEDDED
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 #ifdef PTHREAD_STACK_MIN
@@ -74,13 +91,16 @@ void output_init_dac(log_level level, char *device, unsigned output_buf_size, ch
 #endif
 	pthread_create(&thread, &attr, output_thread, NULL);
 	pthread_attr_destroy(&attr);
+#if HAS_PTHREAD_SETNAME_NP	
+	pthread_setname_np(thread, "output");
+#endif	
 #endif
 #if WIN
 	thread = CreateThread(NULL, OUTPUT_THREAD_STACK_SIZE, (LPTHREAD_START_ROUTINE)&output_thread, NULL, 0, NULL);
 #endif
 }
 
-void output_close_dac(void) {
+void output_close_embedded(void) {
 	LOG_INFO("close output");
 
 	LOCK;
@@ -90,7 +110,7 @@ void output_close_dac(void) {
 	output_close_common();
 }
 
-static int _dac_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
+static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
 								s32_t cross_gain_in, s32_t cross_gain_out, ISAMPLE_T **cross_ptr) {
 
 	u8_t *obuf;

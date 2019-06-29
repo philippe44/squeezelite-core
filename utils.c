@@ -21,7 +21,7 @@
 
 #include "squeezelite.h"
 
-#if LINUX || OSX || FREEBSD || POSIX
+#if LINUX || OSX || FREEBSD || EMBEDDED
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netdb.h>
@@ -103,7 +103,7 @@ u32_t gettime_ms(void) {
 #if WIN
 	return GetTickCount();
 #else
-#if LINUX || FREEBSD || POSIX
+#if LINUX || FREEBSD || EMBEDDED
 	struct timespec ts;
 #ifdef CLOCK_MONOTONIC
 	if (!clock_gettime(CLOCK_MONOTONIC, &ts)) {

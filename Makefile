@@ -1,5 +1,8 @@
 # Cross compile support - create a Makefile which defines these three variables and then includes this Makefile...
-CFLAGS  ?= -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DDACAUDIO -DNO_FAAD -DTREMOR_ONLY -DRESAMPLE16 -DBYTES_PER_FRAME=4 -fstack-usage
+
+EMBEDDED = 1
+
+CFLAGS  ?= -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DNO_FAAD -DTREMOR_ONLY -DBYTES_PER_FRAME=4 -fstack-usage
 LDADD   ?= -lpthread -lm -lrt -lstdc++ -lgomp
 EXECUTABLE ?= squeezelite-core
 
@@ -17,9 +20,17 @@ INCLUDE = -I. \
 
 SOURCES = \
 	main.c slimproto.c buffer.c stream.c utils.c \
-	output.c output_pack.c output_dac.c decode.c \
-	process.c resample16.c resample.c \
+	output.c output_pack.c decode.c \
+	process.c \
 	pcm.c mad.c helix-aac.c flac.c vorbis.c alac.c mpg.c
+
+ifeq ($(EMBEDDED),1)
+SOURCES += output_embedded.c embedded.c resample16.c
+CFLAGS += -DEMBEDDED -DRESAMPLE16
+else
+SOURCES += output_stdout.c resample.c output_pa.c output_alsa.c
+CFLAGS += -DRESAMPLE
+endif
 
 LIBRARIES = libmad.a libhelix-aac.a libflac.a libvorbisidec.a libogg.a libalac.a libsoxr.a libresample16.a
 

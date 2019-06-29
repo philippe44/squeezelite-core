@@ -43,8 +43,11 @@
 #define STR(macro)  QUOTE(macro)
 #define MODEL_NAME_STRING STR(MODEL_NAME)
 
-// build detection
-#if defined(linux)
+// build detection 
+#if defined (EMBEDDED)
+#undef EMBEDDED
+#define EMBEDDED  1
+#elif defined(linux)
 #define LINUX     1
 #define OSX       0
 #define WIN       0
@@ -71,21 +74,18 @@
 #define PA18API   1
 #define OSX       0
 #define WIN       0
-#elif defined (EMBEDDED)
-#include "embedded.h"
 #else
 #error unknown target
 #endif
 
-#if defined(DACAUDIO)
-#undef DACAUDIO
-#define DACAUDIO  1
-#elif LINUX && !defined(PORTAUDIO)
+#if !EMBEDDED
+#if LINUX && !defined(PORTAUDIO)
 #define ALSA      1
 #define PORTAUDIO 0
 #else
 #define ALSA      0
 #define PORTAUDIO 1
+#endif
 #endif
 
 #if !defined(LOOPBACK)
@@ -266,18 +266,18 @@
 #include <limits.h>
 #include <sys/types.h>
 
-#if LINUX || OSX || FREEBSD || POSIX
+#if EMBEDDED
+#include "embedded.h"
+#endif
+	
+#if LINUX || OSX || FREEBSD || EMBEDDED
 #include <unistd.h>
 #include <stdbool.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#if POSIX
 #include <sys/poll.h>
-#else
-#include <poll.h>
-#endif
 #if !LINKALL
 #include <dlfcn.h>
 #endif
@@ -298,6 +298,7 @@
 #define last_error() errno
 #define ERROR_WOULDBLOCK EWOULDBLOCK
 
+#if !EMBEDDED
 #ifdef SUN
 typedef uint8_t  u8_t;
 typedef uint16_t u16_t;
@@ -312,19 +313,19 @@ typedef u_int64_t u64_t;
 typedef int16_t   s16_t;
 typedef int32_t   s32_t;
 typedef int64_t   s64_t;
+#endif
 
 #define mutex_type pthread_mutex_t
 #define mutex_create(m) pthread_mutex_init(&m, NULL)
-#if POSIX
-#define mutex_create_p(m) mutex_create(m)
-#else
+#if HAS_MUTEX_CREATE_P
 #define mutex_create_p(m) pthread_mutexattr_t attr; pthread_mutexattr_init(&attr); pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT); pthread_mutex_init(&m, &attr); pthread_mutexattr_destroy(&attr)
+#else
+#define mutex_create_p(m) mutex_create(m)
 #endif
 #define mutex_lock(m) pthread_mutex_lock(&m)
 #define mutex_unlock(m) pthread_mutex_unlock(&m)
 #define mutex_destroy(m) pthread_mutex_destroy(&m)
 #define thread_type pthread_t
-
 #endif
 
 #if WIN
@@ -624,7 +625,7 @@ typedef enum { OUTPUT_OFF = -1, OUTPUT_STOPPED = 0, OUTPUT_BUFFER, OUTPUT_RUNNIN
 typedef enum { PCM, DOP, DSD_U8, DSD_U16_LE, DSD_U32_LE, DSD_U16_BE, DSD_U32_BE, DOP_S24_LE, DOP_S24_3LE } dsd_format;
 typedef enum { S32_LE, S24_LE, S24_3LE, S16_LE, U8, U16_LE, U16_BE, U32_LE, U32_BE } output_format;
 #else
-typedef enum { S32_LE, S24_LE, S24_3LE, S16_LE } output_format;
+typedef enum { S32_LE, S24_LE, S24_3LE, S16_LE, S24_BE, S24_3BE, S16_BE, S8_BE } output_format;
 #endif
 
 typedef enum { FADE_INACTIVE = 0, FADE_DUE, FADE_ACTIVE } fade_state;
@@ -717,17 +718,17 @@ void output_close_pa(void);
 void _pa_open(void);
 #endif
 
-// output_dac.c
-#if DACAUDIO
+// output_embedded.c
+#if EMBEDDED
 void set_volume(unsigned left, unsigned right);
 bool test_open(const char *device, unsigned rates[], bool userdef_rates);
-void output_init_dac(log_level level, char *device, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle);
-void output_close_dac(void);
-#endif
-
+void output_init_embedded(log_level level, char *device, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay, unsigned idle);
+void output_close_embedded(void);
+#else 
 // output_stdout.c
 void output_init_stdout(log_level level, unsigned output_buf_size, char *params, unsigned rates[], unsigned rate_delay);
 void output_close_stdout(void);
+#endif
 
 // output_pack.c
 void _scale_and_pack_frames(void *outputptr, s32_t *inputptr, frames_t cnt, s32_t gainL, s32_t gainR, output_format format);

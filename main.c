@@ -169,6 +169,9 @@ static void usage(const char *argv0) {
 		   "18"
 #endif
 #endif
+#if EMBEDDED
+			" EMBEDDED"
+#endif	
 #if EVENTFD
 		   " EVENTFD"
 #endif
@@ -532,7 +535,7 @@ int main(int argc, char **argv) {
 			pidfile = optarg;
 			break;
 #endif
-#ifndef DACAUDIO
+#ifndef EMBEDDED
 		case 'l':
 			list_devices();
 			exit(0);
@@ -679,6 +682,7 @@ int main(int argc, char **argv) {
 		case '?':
 			usage(argv[0]);
 			exit(0);
+			break;
 		default:
 			fprintf(stderr, "Arg error: %s\n", argv[optind]);
 			break;
@@ -756,8 +760,8 @@ int main(int argc, char **argv) {
 
 	stream_init(log_stream, stream_buf_size);
 
-#if DACAUDIO
-	output_init_dac(log_output, output_device, output_buf_size, output_params, rates, rate_delay, idle);
+#if EMBEDDED
+	output_init_embedded(log_output, output_device, output_buf_size, output_params, rates, rate_delay, idle);
 #else
 	if (!strcmp(output_device, "-")) {
 		output_init_stdout(log_output, output_buf_size, output_params, rates, rate_delay);
@@ -806,8 +810,8 @@ int main(int argc, char **argv) {
 	decode_close();
 	stream_close();
 
-#if DACAUDIO
-	output_close_dac();	
+#if EMBEDDED
+	output_close_embedded();	
 #else
 	if (!strcmp(output_device, "-")) {
 		output_close_stdout();
