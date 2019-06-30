@@ -27,9 +27,6 @@ static bool running = true;
 extern struct outputstate output;
 extern struct buffer *outputbuf;
 
-#if REPACK && BYTES_PER_FRAMES == 4
-#error "REPACK is not compatible with BYTES_PER_FRAME=4"
-#endif
 
 #define LOCK   mutex_lock(outputbuf->mutex)
 #define UNLOCK mutex_unlock(outputbuf->mutex)
@@ -38,7 +35,7 @@ extern struct buffer *outputbuf;
 
 extern u8_t *silencebuf;
 
-static u8_t *optr;
+static u8_t *obuf;
 static int bytes_per_frame;
 static thread_type thread;
 
@@ -112,52 +109,44 @@ void output_close_embedded(void) {
 
 static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
 								s32_t cross_gain_in, s32_t cross_gain_out, ISAMPLE_T **cross_ptr) {
-
-	u8_t *obuf;
+#if BYTES_PER_FRAME == 8									
+	s32_t *optr;
+#endif	
 	
 	if (!silence) {
-		
 		if (output.fade == FADE_ACTIVE && output.fade_dir == FADE_CROSS && *cross_ptr) {
 			_apply_cross(outputbuf, out_frames, cross_gain_in, cross_gain_out, cross_ptr);
 		}
 		
-#if !REPACK
+#if BYTES_PER_FRAME == 4
 		if (gainL != FIXED_ONE || gainR!= FIXED_ONE) {
 			_apply_gain(outputbuf, out_frames, gainL, gainR);
 		}
 			
-		IF_DSD(
-		if (output.outfmt == DOP) {
-				update_dop((u32_t *) outputbuf->readp, out_frames, output.invert);
-			} else if (output.outfmt != PCM && output.invert)
-				dsd_invert((u32_t *) outputbuf->readp, out_frames);
-		)
-		
-		memcpy(optr, outputbuf->readp, out_frames * BYTES_PER_FRAME);
+		memcpy(obuf, outputbuf->readp, out_frames * bytes_per_frame);
 #else
-		obuf = outputbuf->readp;	
+		optr = (s32_t*) outputbuf->readp;	
 #endif		
-
 	} else {
-	
-		obuf = silencebuf;
-#if !REPACK
-		IF_DSD(
-			if (output.outfmt != PCM) {
-				obuf = silencebuf_dsd;
-				update_dop((u32_t *) obuf, out_frames, false); // don't invert silence
-			}
-		)
-
-		memcpy(optr, obuf, out_frames * BYTES_PER_FRAME);
-#endif		
+#if BYTES_PER_FRAME == 4		
+		memcpy(obuf, silencebuf, out_frames * bytes_per_frame);
+#else		
+		optr = (s32_t*) silencebuf;
+#endif	
 	}
 
-#if REPACK
-	_scale_and_pack_frames(optr, (s32_t *)(void *)obuf, out_frames, gainL, gainR, output.format);
+#if BYTES_PER_FRAME == 8
+	IF_DSD(
+	if (output.outfmt == DOP) {
+			update_dop((u32_t *) optr, out_frames, output.invert);
+		} else if (output.outfmt != PCM && output.invert)
+			dsd_invert((u32_t *) optr, out_frames);
+	)
+
+	_scale_and_pack_frames(obuf, optr, out_frames, gainL, gainR, output.format);
 #endif	
 
-	return (int)out_frames;
+	return out_frames;
 }
 
 static void *output_thread() {
@@ -165,7 +154,7 @@ static void *output_thread() {
 	u8_t *obuf = malloc(FRAME_BLOCK * BYTES_PER_FRAME);
 	int frames = 0;
 
-#if REPACK
+#if BYTES_PER_FRAME == 8
 	LOCK;
 
 	switch (output.format) {
@@ -185,6 +174,8 @@ static void *output_thread() {
 	bytes_per_frame = BYTES_PER_FRAME;
 #endif
 
+	obuf = malloc(FRAME_BLOCK * bytes_per_frame);
+
 	while (running) {
 
 		LOCK;
@@ -199,13 +190,12 @@ static void *output_thread() {
 		output.updated = gettime_ms();
 		output.frames_played_dmp = output.frames_played;
 
-		optr = obuf + frames * bytes_per_frame;
-		frames += _output_frames(FRAME_BLOCK);
+		frames = _output_frames(FRAME_BLOCK);
 		
 		UNLOCK;
 
 		if (frames) {
-			if (output.device[0] == '-' && memcmp(optr, silencebuf, frames * bytes_per_frame)) {
+			if (output.device[0] == '-' && memcmp(obuf, silencebuf, frames * bytes_per_frame)) {
 				fwrite(obuf, bytes_per_frame, frames, stdout);
 				LOG_SDEBUG("writing frames %d", frames);
 			} else {	
