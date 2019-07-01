@@ -27,7 +27,6 @@ static bool running = true;
 extern struct outputstate output;
 extern struct buffer *outputbuf;
 
-
 #define LOCK   mutex_lock(outputbuf->mutex)
 #define UNLOCK mutex_unlock(outputbuf->mutex)
 
@@ -103,7 +102,9 @@ void output_close_embedded(void) {
 	LOCK;
 	running = false;
 	UNLOCK;
-
+#if LINUX || OSX || FREEBSD || EMBEDDED
+	pthread_join(thread, NULL);
+#endif
 	output_close_common();
 }
 
