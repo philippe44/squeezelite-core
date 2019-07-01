@@ -151,8 +151,6 @@ static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL
 }
 
 static void *output_thread() {
-	// buffer to hold output data so we can block on writing outside of output lock, allocated on init
-	u8_t *obuf = malloc(FRAME_BLOCK * BYTES_PER_FRAME);
 	int frames = 0;
 
 #if BYTES_PER_FRAME == 8
