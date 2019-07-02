@@ -11,8 +11,8 @@ Vorbis has a TREMOR_ONLY define to force use of tremor version of vorbis
 
 Can use soxr for resampling or a faster but less accurate 16 bits fixed point resampler (see resample16 repository)
 
-Can use 16 or 32 bits interim sample size (BYTES_PER_FRAME) to save outputbuf space (works with all above codecs)
+Can use 16 or 32 bits interim sample size (BYTES_PER_FRAME=4 define) to save outputbuf space (works with all above codecs)
 
-Can use loopback interface is PIPE and EVENTFD are not available
+Can use loopback interface is PIPE and EVENTFD are not available using LOOPBACK define
 
 Demo/example version can be compiled under Linux with EMBEDDED defined, it will either discard samples or send them to stdout
