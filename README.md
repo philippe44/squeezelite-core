@@ -7,9 +7,11 @@ new EMBEDDED #define
 
 Working codecs: mp3, pcm, flac, aac (faad or helix), alac (native, not using ffmepg), vorbis (improved)
 
+Vorbis has a TREMOR_ONLY define to force use of tremor version of vorbis
+
 Can use soxr for resampling or a faster but less accurate 16 bits fixed point resampler (see resample16 repository)
 
-Can use 16 or 32 bits interim sample size to save outputbuf space
+Can use 16 or 32 bits interim sample size (BYTES_PER_FRAME) to save outputbuf space (works with all above codecs)
 
 Can use loopback interface is PIPE and EVENTFD are not available
 
