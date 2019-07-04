@@ -72,11 +72,6 @@ void output_init_embedded(log_level level, char *device, unsigned output_buf_siz
 		if (!strcmp(params, "16")) output.format = S16_LE;
 	}
 	
-	// ensure output rate is specified to avoid test open
-	if (!rates[0]) {
-		rates[0] = 44100;
-	}
-
 	output_init_common(level, device, output_buf_size, rates, idle);
 
 #if LINUX || OSX || FREEBSD || EMBEDDED
