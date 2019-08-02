@@ -13,6 +13,7 @@ INCLUDE = -I. \
 	-I$(BASE)/helix-aac \
 	-I$(BASE)/flac/include \
 	-I$(BASE)/tremor -I$(BASE)/libogg/include \
+	-I$(BASE)/libopus/include -I$(BASE)/libopusfile/include\
 	-I$(BASE)/soxr/src \
 	-I$(BASE)/alac \
 	-I$(BASE)/libresample16
@@ -22,7 +23,7 @@ SOURCES = \
 	main.c slimproto.c buffer.c stream.c utils.c \
 	output.c output_pack.c decode.c \
 	process.c \
-	pcm.c mad.c helix-aac.c flac.c vorbis.c alac.c mpg.c
+	pcm.c mad.c helix-aac.c flac.c vorbis.c alac.c mpg.c opus.c
 
 ifeq ($(EMBEDDED),1)
 SOURCES += output_embedded.c embedded.c resample16.c
@@ -32,7 +33,7 @@ SOURCES += output_stdout.c resample.c output_pa.c output_alsa.c
 CFLAGS += -DRESAMPLE
 endif
 
-LIBRARIES = libmad.a libhelix-aac.a libflac.a libvorbisidec.a libogg.a libalac.a libsoxr.a libresample16.a
+LIBRARIES = libmad.a libhelix-aac.a libflac.a libvorbisidec.a libogg.a libalac.a libsoxr.a libresample16.a libopusfile.a libopus.a
 
 LINK_LINUX       = -ldl
 
