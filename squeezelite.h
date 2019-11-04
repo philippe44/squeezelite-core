@@ -539,6 +539,7 @@ unsigned _buf_cont_write(struct buffer *buf);
 void _buf_inc_readp(struct buffer *buf, unsigned by);
 void _buf_inc_writep(struct buffer *buf, unsigned by);
 void buf_flush(struct buffer *buf);
+void _buf_flush(struct buffer *buf);
 void buf_adjust(struct buffer *buf, size_t mod);
 void _buf_resize(struct buffer *buf, size_t size);
 void buf_init(struct buffer *buf, size_t size);
@@ -654,6 +655,8 @@ struct outputstate {
 	output_state state;
 	output_format format;
 	const char *device;
+	bool external;
+	u32_t init_size;
 #if ALSA
 	unsigned buffer;
 	unsigned period;
@@ -673,6 +676,7 @@ struct outputstate {
 	unsigned default_sample_rate;
 	bool error_opening;
 	unsigned device_frames;
+	unsigned frames_in_process;
 	u32_t updated;
 	u32_t track_start_time;
 	u32_t current_replay_gain;
