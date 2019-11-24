@@ -13,6 +13,7 @@
 		- exit
 		- gettime_ms
 		- BASE_CAP
+		- EXT_BSS 		
 	recommended to add platform specific include(s) here
 */	
 	
@@ -24,6 +25,7 @@
 #define DECODE_THREAD_STACK_SIZE 128 * 1024
 #define OUTPUT_THREAD_STACK_SIZE  64 * 1024
 #define IR_THREAD_STACK_SIZE      64 * 1024
+
 
 typedef u_int8_t  u8_t;
 typedef u_int16_t u16_t;
