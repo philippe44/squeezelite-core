@@ -40,8 +40,11 @@ typedef int64_t   s64_t;
 #define mutex_create_p(m) pthread_mutexattr_t attr; pthread_mutexattr_init(&attr); pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT); pthread_mutex_init(&m, &attr); pthread_mutexattr_destroy(&attr)
 #define pthread_create_name(t,a,f,p,n) pthread_create(t,a,f,p)
 
-// these are here as they can be #define to nothing			
-void 		register_external(void);
-void 		deregister_external(void);
+// these can be real function for a general init and extra codecs
+#define 	embedded_init()
+#define 	register_external()
+#define 	deregister_external()
+#define		decode_resume(external)
+void 		(*server_notify)(in_addr_t ip, u16_t hport, u16_t cport);
 				   
 #endif // EMBEDDED_H

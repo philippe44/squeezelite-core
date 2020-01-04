@@ -25,8 +25,4 @@ void get_mac(u8_t mac[]) {
 	mac[0] = mac[1] = mac[2] = mac[3] = mac[4] = mac[5] = 0;
 }
 
-void register_external(void) {
-}
 
-void deregister_external(void) {
-}
