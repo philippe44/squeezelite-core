@@ -45,6 +45,7 @@ typedef int64_t   s64_t;
 #define 	register_external()
 #define 	deregister_external()
 #define		decode_resume(external)
+#define 	vfd_data(data, len)
 void 		(*server_notify)(in_addr_t ip, u16_t hport, u16_t cport);
 				   
 #endif // EMBEDDED_H
