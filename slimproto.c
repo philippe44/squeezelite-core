@@ -45,7 +45,7 @@ static sockfd sock = -1;
 static in_addr_t slimproto_ip = 0;
 static u16_t slimproto_hport = 9000;
 static u16_t slimproto_cport = 9090;
-static u8_t	player_id = 100; // squeezeesp32
+static u8_t	player_id;
 
 extern struct buffer *streambuf;
 extern struct buffer *outputbuf;
@@ -87,13 +87,13 @@ static struct {
 	stream_state stream_state;
 } status;
 
-int autostart;
-bool sentSTMu, sentSTMo, sentSTMl;
-u32_t new_server;
-char *new_server_cap;
+static int autostart;
+static bool sentSTMu, sentSTMo, sentSTMl;
+static u32_t new_server;
+static char *new_server_cap;
 #define PLAYER_NAME_LEN 64
-char player_name[PLAYER_NAME_LEN + 1] = "";
-const char *name_file = NULL;
+static char player_name[PLAYER_NAME_LEN + 1] = "";
+static const char *name_file = NULL;
 
 void send_packet(u8_t *packet, size_t len) {
 	u8_t *ptr = packet;
@@ -133,6 +133,8 @@ static void sendHELO(bool reconnect, const char *fixed_cap, const char *var_cap,
 #else
 	base_cap = BASE_CAP;
 #endif	
+
+	if (!reconnect) player_id = PLAYER_ID;
 
 	memset(&pkt, 0, sizeof(pkt));
 	memcpy(&pkt.opcode, "HELO", 4);
@@ -375,7 +377,7 @@ static void process_strm(u8_t *pkt, int len) {
 			sentSTMu = sentSTMo = sentSTMl = false;
 			LOCK_O;
 #if EMBEDDED
-			if (output.external) decode_resume(output.external);
+			if (output.external) decode_restore(output.external);
 			output.external = 0;
 			_buf_resize(outputbuf, output.init_size);
 #endif
@@ -448,11 +450,6 @@ static void process_audg(u8_t *pkt, int len) {
 static void process_dsco(u8_t *pkt, int len) {
 	LOG_INFO("got DSCO, switching from id %u to 12", (int) player_id);
 	player_id = 12;
-}
-
-static void process_vfdc(u8_t *pkt, int len) {
-	LOG_DEBUG("VFDC %u", len);
-	vfd_data( pkt + 4, len - 4);
 }
 
 static void process_setd(u8_t *pkt, int len) {
@@ -531,7 +528,6 @@ static struct handler handlers[] = {
 	{ "setd", process_setd },
 	{ "serv", process_serv },
 	{ "dsco", process_dsco },
-	{ "vfdc", process_vfdc },
 	{ "",     NULL  },
 };
 
@@ -542,7 +538,7 @@ static void process(u8_t *pack, int len) {
 	if (h->handler) {
 		LOG_DEBUG("%s", h->opcode);
 		h->handler(pack, len);
-	} else {
+	} else if (!slimp_handler || !(*slimp_handler)(pack, len)) {
 		pack[4] = '\0';
 		LOG_WARN("unhandled %s", (char *)pack);
 	}
@@ -774,6 +770,7 @@ static void slimproto_run() {
 #if IR
 			if (_sendIR)   sendIR(ir_code, ir_ts);
 #endif
+			if (*slimp_loop) (*slimp_loop)();
 		}
 	}
 }
