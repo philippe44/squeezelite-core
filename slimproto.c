@@ -183,7 +183,11 @@ static void sendSTAT(const char *event, u32_t server_timestamp) {
 	packN(&pkt.stream_buffer_size, status.stream_size);
 	packN(&pkt.bytes_received_H, (u64_t)status.stream_bytes >> 32);
 	packN(&pkt.bytes_received_L, (u64_t)status.stream_bytes & 0xffffffff);
+#if EMBEDDED
+	packn(&pkt.signal_strength, get_RSSI());
+#else 
 	pkt.signal_strength = 0xffff;
+#endif	
 	packN(&pkt.jiffies, now);
 	packN(&pkt.output_buffer_size, status.output_size);
 	packN(&pkt.output_buffer_fullness, status.output_full);
@@ -284,22 +288,14 @@ static void process_strm(u8_t *pkt, int len) {
 	case 't':
 		sendSTAT("STMt", strm->replay_gain); // STMt replay_gain is no longer used to track latency, but support it
 		break;
+	case 'f':	
 	case 'q':
 		decode_flush();
 		if (!output.external) output_flush();
 		status.frames_played = 0;
-		stream_disconnect();
-		sendSTAT("STMf", 0);
+		if (stream_disconnect() && strm->command == 'f') sendSTAT("STMf", 0);
 		buf_flush(streambuf);
-		break;
-	case 'f':
-		decode_flush();
-		if (!output.external) output_flush();
-		status.frames_played = 0;
-		if (stream_disconnect()) {
-			sendSTAT("STMf", 0);
-		}
-		buf_flush(streambuf);
+		output.stop_time = gettime_ms();
 		break;
 	case 'p':
 		{
@@ -698,46 +694,47 @@ static void slimproto_run() {
 			UNLOCK_D;
 			
 			LOCK_O;
-			status.output_full = _buf_used(outputbuf);
-			status.output_size = outputbuf->size;
-			status.frames_played = output.frames_played_dmp;
-			status.current_sample_rate = output.current_sample_rate;
-			status.updated = output.updated;
-			status.device_frames = output.device_frames;
-						
-			if (output.track_started) {
-				_sendSTMs = true;
-				output.track_started = false;
-				status.stream_start = output.track_start_time;
-			}
+			if (!output.external) {
+				status.output_full = _buf_used(outputbuf);
+				status.output_size = outputbuf->size;
+				status.frames_played = output.frames_played_dmp;
+				status.current_sample_rate = output.current_sample_rate;
+				status.updated = output.updated;
+				status.device_frames = output.device_frames;
+									
+				if (output.track_started) {
+					_sendSTMs = true;
+					output.track_started = false;
+					status.stream_start = output.track_start_time;
+				}
 #if PORTAUDIO
-			if (output.pa_reopen) {
-				_pa_open();
-				output.pa_reopen = false;
-			}
+				if (output.pa_reopen) {
+					_pa_open();
+					output.pa_reopen = false;
+				}
 #endif
-			if (_start_output && (output.state == OUTPUT_STOPPED || output.state == OUTPUT_OFF)) {
-				output.state = OUTPUT_BUFFER;
-			}
-			if (!output.external && output.state == OUTPUT_RUNNING && !sentSTMu && status.output_full == 0 && status.stream_state <= DISCONNECT &&
-				_decode_state == DECODE_STOPPED) {
+				if (_start_output && (output.state == OUTPUT_STOPPED || output.state == OUTPUT_OFF)) {
+					output.state = OUTPUT_BUFFER;
+				}
+				if (output.state == OUTPUT_RUNNING && !sentSTMu && status.output_full == 0 && status.stream_state <= DISCONNECT &&
+					_decode_state == DECODE_STOPPED) {
 
-				_sendSTMu = true;
-				sentSTMu = true;
-				LOG_DEBUG("output underrun");
-				output.state = OUTPUT_STOPPED;
-				output.stop_time = now;
-			}
-			if (output.state == OUTPUT_RUNNING && !sentSTMo && status.output_full == 0 && status.stream_state == STREAMING_HTTP) {
-
-				_sendSTMo = true;
-				sentSTMo = true;
-			}
+					_sendSTMu = true;
+					sentSTMu = true;
+					LOG_DEBUG("output underrun");
+					output.state = OUTPUT_STOPPED;
+					output.stop_time = now;
+				}
+				if (output.state == OUTPUT_RUNNING && !sentSTMo && status.output_full == 0 && status.stream_state == STREAMING_HTTP) {
+					_sendSTMo = true;
+					sentSTMo = true;
+				}
+			}	
 			if (output.state == OUTPUT_STOPPED && output.idle_to && (now - output.stop_time > output.idle_to)) {
 				output.state = OUTPUT_OFF;
 				LOG_DEBUG("output timeout");
-			}
-			if (!output.external && output.state == OUTPUT_RUNNING && now - status.last > 1000) {
+			}			
+			if (output.state == OUTPUT_RUNNING && now - status.last > 1000) {
 				_sendSTMt = true;
 				status.last = now;
 			}
@@ -780,7 +777,7 @@ void wake_controller(void) {
 	wake_signal(wake_e);
 }
 
-in_addr_t discover_server(char *default_server) {
+in_addr_t discover_server(char *default_server, int max) {
 	struct sockaddr_in d;
 	struct sockaddr_in s;
 	char buf[32], port_d[] = "JSON", clip_d[] = "CLIP";
@@ -834,7 +831,7 @@ in_addr_t discover_server(char *default_server) {
 			server_addr(default_server, &s.sin_addr.s_addr, &port);
 		}
 
-	} while (s.sin_addr.s_addr == 0 && running);
+	} while (s.sin_addr.s_addr == 0 && running && (!max || --max));
 
 	closesocket(disc_sock);
 
@@ -865,7 +862,7 @@ void slimproto(log_level level, char *server, u8_t mac[6], const char *name, con
 	}
 
 	if (!slimproto_ip) {
-		slimproto_ip = discover_server(server);
+		slimproto_ip = discover_server(server, 0);
 	}
 
 	if (!slimproto_port) {
@@ -944,10 +941,18 @@ void slimproto(log_level level, char *server, u8_t mac[6], const char *name, con
 				sleep(5);
 			}
 
-			// rediscover server if it was not set at startup
+#if EMBEDDED
+			// in embedded we give up after a while no matter what
+			if (++failed_connect > 5 && !server) {
+				slimproto_ip = serv_addr.sin_addr.s_addr = discover_server(NULL, MAX_SERVER_RETRIES);
+				if (!slimproto_ip) return;
+			} else if (MAX_SERVER_RETRIES && failed_connect > 5 * MAX_SERVER_RETRIES) return;
+#else
+			// rediscover server if it was not set at startup or exit 
 			if (!server && ++failed_connect > 5) {
-				slimproto_ip = serv_addr.sin_addr.s_addr = discover_server(NULL);
-			}
+				slimproto_ip = serv_addr.sin_addr.s_addr = discover_server(NULL, 0);
+			} 
+#endif	
 
 		} else {
 

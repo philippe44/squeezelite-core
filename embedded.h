@@ -57,6 +57,9 @@ typedef int64_t   s64_t;
 #define 	deregister_external()
 #define		decode_restore(external)
 
+// must provide or define as 0xffff
+#define		get_RSSI() 0xffff
+
 // to be defined to nothing if you don't want to support these
 extern struct visu_export_s {
 	pthread_mutex_t mutex;
