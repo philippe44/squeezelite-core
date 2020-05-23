@@ -56,6 +56,9 @@ typedef int64_t   s64_t;
 #define 	register_external()
 #define 	deregister_external()
 #define		decode_restore(external)
+// used when other client wants to use slimproto socket to send messages
+#define LOCK_P
+#define UNLOCK_P
 
 // must provide or define as 0xffff
 #define		get_RSSI() 0xffff
