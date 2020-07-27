@@ -387,13 +387,6 @@ typedef BOOL bool;
 
 #endif
 
-#if EMBEDDED
-#include "embedded.h"
-#endif
-
-typedef u32_t frames_t;
-typedef int sockfd;
-
 // logging
 typedef enum { lERROR = 0, lWARN, lINFO, lDEBUG, lSDEBUG } log_level;
 
@@ -405,6 +398,13 @@ void logprint(const char *fmt, ...);
 #define LOG_INFO(fmt, ...)  if (loglevel >= lINFO)  logprint("%s %s:%d " fmt "\n", logtime(), __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define LOG_DEBUG(fmt, ...) if (loglevel >= lDEBUG) logprint("%s %s:%d " fmt "\n", logtime(), __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define LOG_SDEBUG(fmt, ...) if (loglevel >= lSDEBUG) logprint("%s %s:%d " fmt "\n", logtime(), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+	
+typedef uint32_t frames_t;
+typedef int sockfd;
+	
+#if EMBEDDED
+#include "embedded.h"
+#endif
 
 #if !defined(MSG_NOSIGNAL)
 #define MSG_NOSIGNAL 0
@@ -544,6 +544,7 @@ void _buf_inc_readp(struct buffer *buf, unsigned by);
 void _buf_inc_writep(struct buffer *buf, unsigned by);
 void buf_flush(struct buffer *buf);
 void _buf_flush(struct buffer *buf);
+void _buf_unwrap(struct buffer *buf, size_t cont);
 void buf_adjust(struct buffer *buf, size_t mod);
 void _buf_resize(struct buffer *buf, size_t size);
 void buf_init(struct buffer *buf, size_t size);

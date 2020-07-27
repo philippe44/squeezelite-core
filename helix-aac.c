@@ -156,7 +156,7 @@ static int read_mp4_header(unsigned long *samplerate_p, unsigned char *channels_
 			info.sampRateCore = (*ptr++ & 0x07) << 1;
 			info.sampRateCore |= (*ptr >> 7) & 0x01;
 			info.sampRateCore = rates[info.sampRateCore];
-			info.nChans = *ptr >> 3;
+			info.nChans = (*ptr & 0x7f) >> 3;
 			*channels_p = info.nChans;
 			*samplerate_p = info.sampRateCore;
 			HAAC(a, SetRawBlockParams, a->hAac, 0, &info); 
@@ -314,9 +314,15 @@ static int read_mp4_header(unsigned long *samplerate_p, unsigned char *channels_
 			a->pos += bytes;
 			a->consume = consume - bytes;
 			break;
-		} else {
+		} else if (len > streambuf->size) {
+ 			// can't process an atom larger than streambuf!
+			LOG_ERROR("atom %s too large for buffer %u %u", type, len, streambuf->size);
+			return -1;
+		 } else {
+			 // make sure there is 'len' contiguous space
+			_buf_unwrap(streambuf, len); 
 			break;
-		}
+		 }
 	}
 
 	return 0;
@@ -358,7 +364,7 @@ static decode_state helixaac_decode(void) {
 		if (a->type == '2') {
 
 			// adts stream - seek for header
-			long n = AACFindSyncWord(streambuf->readp, bytes_wrap);
+			long n = HAAC(a, FindSyncWord, streambuf->readp, bytes_wrap);
 			
 			LOG_DEBUG("Sync search in %d bytes %d", bytes_wrap, n);
 			
