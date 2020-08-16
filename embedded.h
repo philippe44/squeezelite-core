@@ -60,8 +60,13 @@ typedef int64_t   s64_t;
 #define LOCK_P
 #define UNLOCK_P
 
-// must provide or define as 0xffff
-#define		get_RSSI() 0xffff
+// bitmap of plugs status
+#define PLUG_LINE_IN 	0x01
+#define PLUG_LINE_OUT	0x02
+#define PLUG_HEADPHONE	0x04
+u16_t	get_RSSI(void)		0xffff
+u16_t	get_plugged(void)	0
+u8_t	get_battery(void)	0
 
 // to be defined to nothing if you don't want to support these
 extern struct visu_export_s {
