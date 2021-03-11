@@ -2,7 +2,7 @@
 
 EMBEDDED = 1
 
-CFLAGS  ?= -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DNO_FAAD -DTREMOR_ONLY -DBYTES_PER_FRAME=4 -fstack-usage
+CFLAGS  = -Wall -fPIC -O2 -DLINKALL -DLOOPBACK -DNO_FAAD -DTREMOR_ONLY -DBYTES_PER_FRAME=4 -fstack-usage
 LDADD   ?= -lpthread -lm -lrt -lstdc++ -lgomp
 EXECUTABLE ?= squeezelite-core
 

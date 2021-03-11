@@ -42,7 +42,12 @@ typedef int64_t   s64_t;
 // or can point to a variable that is set at runtime
 #define PLAYER_ID 12
 
-#define BASE_CAP "Model=squeezelite,AccuratePlayPoints=1,HasDigitalOut=1,HasPolarityInversion=1,Firmware=" VERSION
+#if BYTES_PER_FRAME == 8
+#define BASE_CAP "Model=squeezeesp32,AccuratePlayPoints=1,HasDigitalOut=1,HasPolarityInversion=1,Balance=1,Depth=32,Firmware=" VERSION 
+#else
+#define BASE_CAP "Model=squeezeesp32,AccuratePlayPoints=1,HasDigitalOut=1,HasPolarityInversion=1,Balance=1,Depth=16,Firmware=" VERSION 
+#endif
+
 // to force some special buffer attribute
 #define EXT_BSS
 
@@ -64,9 +69,9 @@ typedef int64_t   s64_t;
 #define PLUG_LINE_IN 	0x01
 #define PLUG_LINE_OUT	0x02
 #define PLUG_HEADPHONE	0x04
-u16_t	get_RSSI(void)		0xffff
-u16_t	get_plugged(void)	0
-u8_t	get_battery(void)	0
+#define get_RSSI()	0xffff
+#define get_plugged()	0
+#define get_battery()	0
 
 // to be defined to nothing if you don't want to support these
 extern struct visu_export_s {

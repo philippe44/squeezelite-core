@@ -122,7 +122,7 @@ void send_packet(u8_t *packet, size_t len) {
 
 static void sendHELO(bool reconnect, const char *fixed_cap, const char *var_cap, u8_t mac[6]) {
 #ifndef BASE_CAP	
-#define BASE_CAP "Model=squeezelite,AccuratePlayPoints=1,HasDigitalOut=1,HasPolarityInversion=1,Firmware=" VERSION
+#define BASE_CAP "Model=squeezelite,AccuratePlayPoints=1,HasDigitalOut=1,HasPolarityInversion=1,Balance=1,Firmware=" VERSION
 #endif	
 	#define SSL_CAP "CanHTTPS=1"
 	const char *base_cap;
@@ -397,8 +397,9 @@ static void process_strm(u8_t *pkt, int len) {
 			output.next_replay_gain = unpackN(&strm->replay_gain);
 			output.fade_mode = strm->transition_type - '0';
 			output.fade_secs = strm->transition_period;
-			output.invert    = (strm->flags & 0x03) == 0x03;
-			LOG_DEBUG("set fade mode: %u", output.fade_mode);
+			output.invert = (strm->flags & 0x03) == 0x03;
+			output.channels = (strm->flags & 0x0c) >> 2;
+			LOG_DEBUG("set fade: %u, channels: %u, invert: %u", output.fade_mode, output.channels, output.invert);
 			UNLOCK_O;
 		}
 		break;
@@ -822,14 +823,14 @@ in_addr_t discover_server(char *default_server, int max) {
 		memset(&s, 0, sizeof(s));
 
 		if (sendto(disc_sock, buf, len, 0, (struct sockaddr *)&d, sizeof(d)) < 0) {
-			LOG_INFO("error sending disovery");
+			LOG_INFO("error sending discovery");
 		}
 
 		if (poll(&pollinfo, 1, 5000) == 1) {
-			char readbuf[32], *p;
+			char readbuf[64], *p;
 			socklen_t slen = sizeof(s);
-			memset(readbuf, 0, 32);
-			recvfrom(disc_sock, readbuf, 32 - 1, 0, (struct sockaddr *)&s, &slen);
+			memset(readbuf, 0, sizeof(readbuf));
+			recvfrom(disc_sock, readbuf, sizeof(readbuf) - 1, 0, (struct sockaddr *)&s, &slen);
 			LOG_INFO("got response from: %s:%d", inet_ntoa(s.sin_addr), ntohs(s.sin_port));
 
 			 if ((p = strstr(readbuf, port_d)) != NULL) {
@@ -962,7 +963,7 @@ void slimproto(log_level level, char *server, u8_t mac[6], const char *name, con
 			if (++failed_connect > 5 && !server) {
 				slimproto_ip = serv_addr.sin_addr.s_addr = discover_server(NULL, MAX_SERVER_RETRIES);
 				if (!slimproto_ip) return;
-			} else if (MAX_SERVER_RETRIES && failed_connect > 5 * MAX_SERVER_RETRIES) return;
+			} else if (reconnect && MAX_SERVER_RETRIES && failed_connect > 5 * MAX_SERVER_RETRIES) return;
 #else
 			// rediscover server if it was not set at startup or exit 
 			if (!server && ++failed_connect > 5) {
