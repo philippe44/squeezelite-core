@@ -38,7 +38,7 @@ static u8_t *obuf;
 static int bytes_per_frame;
 static thread_type thread;
 
-static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
+static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR, u8_t flags,
 								s32_t cross_gain_in, s32_t cross_gain_out, ISAMPLE_T **cross_ptr);
 static void *output_thread();
 
@@ -103,7 +103,7 @@ void output_close_embedded(void) {
 	output_close_common();
 }
 
-static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR,
+static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL, s32_t gainR, u8_t flags,
 								s32_t cross_gain_in, s32_t cross_gain_out, ISAMPLE_T **cross_ptr) {
 #if BYTES_PER_FRAME == 8									
 	s32_t *optr;
@@ -116,7 +116,7 @@ static int _embedded_write_frames(frames_t out_frames, bool silence, s32_t gainL
 		
 #if BYTES_PER_FRAME == 4
 		if (gainL != FIXED_ONE || gainR!= FIXED_ONE) {
-			_apply_gain(outputbuf, out_frames, gainL, gainR);
+			_apply_gain(outputbuf, out_frames, gainL, gainR, flags);
 		}
 			
 		memcpy(obuf, outputbuf->readp, out_frames * bytes_per_frame);
