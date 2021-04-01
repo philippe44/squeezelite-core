@@ -73,6 +73,9 @@ typedef int64_t   s64_t;
 #define get_plugged()	0
 #define get_battery()	0
 
+// set name 
+void set_name(char *name);		// can be defined as an empty macro
+
 // to be defined to nothing if you don't want to support these
 extern struct visu_export_s {
 	pthread_mutex_t mutex;
